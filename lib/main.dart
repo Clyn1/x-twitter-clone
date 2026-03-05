@@ -3,18 +3,15 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'firebase_options.dart'; 
+import 'firebase_options.dart';
+import 'screens/auth_wrapper.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
     options: DefaultFirebaseOptions.currentPlatform,
   );
-  runApp(
-    const ProviderScope(
-      child: MyApp(),
-    ),
-  );
+  runApp(const ProviderScope(child: MyApp()));
 }
 
 class MyApp extends StatelessWidget {
@@ -33,11 +30,11 @@ class MyApp extends StatelessWidget {
           error: Color(0xFFE0245E),
           surface: Color(0xFF0A0A14),
         ),
-        // Removes the default focus highlight on web
         focusColor: Colors.transparent,
         splashColor: Colors.transparent,
         highlightColor: Colors.transparent,
       ),
+      home: const AuthWrapper(),
     );
   }
 }
