@@ -7,20 +7,19 @@ import '../models/profile_setup_state.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
 import '../services/user_service.dart';
+import '../services/post_service.dart';
 import 'auth_notifier.dart';
 import 'profile_setup_notifier.dart';
+import 'post_notifier.dart';
 
 // ── Auth ──────────────────────────────────────────────────────────────────────
 
-/// Provides the AuthService instance
 final authServiceProvider = Provider<AuthService>((ref) => AuthService());
 
-/// Streams the Firebase auth state (User? — null means logged out)
 final authStateProvider = StreamProvider<User?>((ref) {
   return ref.watch(authServiceProvider).authStateChanges;
 });
 
-/// Manages transient UI auth state (loading / error for login & register forms)
 final authNotifierProvider =
     StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier(ref.watch(authServiceProvider));
@@ -28,23 +27,47 @@ final authNotifierProvider =
 
 // ── User / Profile ────────────────────────────────────────────────────────────
 
-/// Provides the UserService instance
 final userServiceProvider = Provider<UserService>((ref) => UserService());
 
-/// Streams the current user's Firestore document in real time.
-/// Returns null if the document doesn't exist (profile not set up yet).
 final currentUserProvider = StreamProvider<UserModel?>((ref) {
-  final authState = ref.watch(authStateProvider);
-  final uid = authState.value?.uid;
+  final uid = ref.watch(authStateProvider).value?.uid;
   if (uid == null) return Stream.value(null);
   return ref.watch(userServiceProvider).streamUser(uid);
 });
 
-/// Manages profile setup form state (loading / error / success)
 final profileSetupNotifierProvider =
     StateNotifierProvider<ProfileSetupNotifier, ProfileSetupState>((ref) {
   return ProfileSetupNotifier(
     ref.watch(userServiceProvider),
     ref.watch(authServiceProvider),
   );
+});
+
+// ── Posts ─────────────────────────────────────────────────────────────────────
+
+final postServiceProvider = Provider<PostService>((ref) => PostService());
+
+/// Global "For You" feed stream
+final globalFeedProvider = StreamProvider<List<dynamic>>((ref) {
+  return ref.watch(postServiceProvider).streamGlobalFeed();
+});
+
+/// Following feed stream
+final followingFeedProvider = StreamProvider<List<dynamic>>((ref) {
+  final uid = ref.watch(authStateProvider).value?.uid;
+  if (uid == null) return Stream.value([]);
+  return ref.watch(postServiceProvider).streamFollowingFeed(uid);
+});
+
+/// Create post state
+final createPostProvider =
+    StateNotifierProvider<CreatePostNotifier, CreatePostState>((ref) {
+  return CreatePostNotifier(ref.watch(postServiceProvider));
+});
+
+/// Per-user like state manager
+final feedLikesProvider =
+    StateNotifierProvider<FeedNotifier, Map<String, bool>>((ref) {
+  final uid = ref.watch(authStateProvider).value?.uid ?? '';
+  return FeedNotifier(ref.watch(postServiceProvider), uid);
 });
