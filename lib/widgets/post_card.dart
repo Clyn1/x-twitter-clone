@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/post_model.dart';
 import '../providers/providers.dart';
+import '../screens/profile_screen.dart';
 
 class PostCard extends ConsumerWidget {
   final PostModel post;
@@ -24,6 +25,14 @@ class PostCard extends ConsumerWidget {
     return '${dt.day}/${dt.month}/${dt.year}';
   }
 
+  void _goToProfile(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ProfileScreen(uid: post.uid),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isLiked = ref.watch(feedLikesProvider)[post.id] ?? false;
@@ -41,8 +50,12 @@ class PostCard extends ConsumerWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── Avatar ────────────────────────────────────────────────────────
-          _Avatar(photoUrl: post.photoUrl, displayName: post.displayName),
+          // ── Tappable Avatar ───────────────────────────────────────────────
+          GestureDetector(
+            onTap: () => _goToProfile(context),
+            child: _Avatar(
+                photoUrl: post.photoUrl, displayName: post.displayName),
+          ),
           const SizedBox(width: 12),
 
           // ── Content ───────────────────────────────────────────────────────
@@ -54,41 +67,43 @@ class PostCard extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
-                      child: Row(
-                        children: [
-                          Flexible(
-                            child: Text(
-                              post.displayName,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
+                      child: GestureDetector(
+                        onTap: () => _goToProfile(context),
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                post.displayName,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                ),
                               ),
                             ),
-                          ),
-                          const SizedBox(width: 4),
-                          Flexible(
-                            child: Text(
-                              '@${post.username}',
-                              overflow: TextOverflow.ellipsis,
+                            const SizedBox(width: 4),
+                            Flexible(
+                              child: Text(
+                                '@${post.username}',
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.45),
+                                  fontSize: 14,
+                                ),
+                              ),
+                            ),
+                            Text(
+                              ' · ${_timeAgo(post.createdAt)}',
                               style: TextStyle(
                                 color: Colors.white.withOpacity(0.45),
                                 fontSize: 14,
                               ),
                             ),
-                          ),
-                          Text(
-                            ' · ${_timeAgo(post.createdAt)}',
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.45),
-                              fontSize: 14,
-                            ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
-                    // Options menu (for own posts)
                     if (post.uid == currentUid)
                       _PostMenu(
                         onDelete: () => ref
@@ -99,7 +114,7 @@ class PostCard extends ConsumerWidget {
                 ),
                 const SizedBox(height: 6),
 
-                // Post content
+                // Post text
                 Text(
                   post.content,
                   style: const TextStyle(
@@ -125,10 +140,9 @@ class PostCard extends ConsumerWidget {
 
                 const SizedBox(height: 12),
 
-                // Action row
+                // Actions
                 Row(
                   children: [
-                    // Like
                     _ActionButton(
                       icon: isLiked
                           ? Icons.favorite_rounded
@@ -144,8 +158,6 @@ class PostCard extends ConsumerWidget {
                           .toggleLike(post.id),
                     ),
                     const SizedBox(width: 28),
-
-                    // Comment (placeholder for now)
                     _ActionButton(
                       icon: Icons.chat_bubble_outline_rounded,
                       label: post.commentsCount > 0
@@ -155,8 +167,6 @@ class PostCard extends ConsumerWidget {
                       onTap: () {},
                     ),
                     const SizedBox(width: 28),
-
-                    // Share (placeholder)
                     _ActionButton(
                       icon: Icons.repeat_rounded,
                       label: '',
@@ -177,7 +187,6 @@ class PostCard extends ConsumerWidget {
 class _Avatar extends StatelessWidget {
   final String? photoUrl;
   final String displayName;
-
   const _Avatar({this.photoUrl, required this.displayName});
 
   @override
@@ -216,36 +225,30 @@ class _ActionButton extends StatelessWidget {
   final String label;
   final Color color;
   final VoidCallback onTap;
-
-  const _ActionButton({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.onTap,
-  });
+  const _ActionButton(
+      {required this.icon,
+      required this.label,
+      required this.color,
+      required this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Row(
-        children: [
-          Icon(icon, color: color, size: 20),
-          if (label.isNotEmpty) ...[
-            const SizedBox(width: 4),
-            Text(label,
-                style: TextStyle(color: color, fontSize: 13)),
-          ],
+      child: Row(children: [
+        Icon(icon, color: color, size: 20),
+        if (label.isNotEmpty) ...[
+          const SizedBox(width: 4),
+          Text(label, style: TextStyle(color: color, fontSize: 13)),
         ],
-      ),
+      ]),
     );
   }
 }
 
 class _PostMenu extends StatelessWidget {
   final VoidCallback onDelete;
-
   const _PostMenu({required this.onDelete});
 
   @override

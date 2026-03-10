@@ -23,10 +23,7 @@ class PostService {
     Uint8List? imageBytes,
     String? imageMimeType,
   }) async {
-    // 1. Create post doc to get an ID
     final docRef = _posts.doc();
-
-    // 2. Upload image if provided
     String? imageUrl;
     if (imageBytes != null && imageMimeType != null) {
       final ext = imageMimeType.contains('png') ? 'png' : 'jpg';
@@ -37,8 +34,6 @@ class PostService {
       );
       imageUrl = await task.ref.getDownloadURL();
     }
-
-    // 3. Save post
     final post = PostModel(
       id: docRef.id,
       uid: uid,
@@ -49,13 +44,11 @@ class PostService {
       imageUrl: imageUrl,
       createdAt: DateTime.now(),
     );
-
     await docRef.set(post.toMap());
   }
 
-  // ── Read ────────────────────────────────────────────────────────────────────
+  // ── Feeds ───────────────────────────────────────────────────────────────────
 
-  /// Global feed — all posts, newest first
   Stream<List<PostModel>> streamGlobalFeed() {
     return _posts
         .orderBy('createdAt', descending: true)
@@ -64,7 +57,6 @@ class PostService {
         .map((snap) => snap.docs.map(PostModel.fromDoc).toList());
   }
 
-  /// Following feed — posts from users the current user follows
   Stream<List<PostModel>> streamFollowingFeed(String currentUid) {
     return _db
         .collection('follows')
@@ -73,16 +65,13 @@ class PostService {
         .asyncMap((followSnap) async {
       final followingIds =
           followSnap.docs.map((d) => d['followingId'] as String).toList();
-
       if (followingIds.isEmpty) return <PostModel>[];
 
-      // Firestore whereIn supports up to 30 values
       final chunks = <List<String>>[];
       for (var i = 0; i < followingIds.length; i += 30) {
         chunks.add(followingIds.sublist(
             i, i + 30 > followingIds.length ? followingIds.length : i + 30));
       }
-
       final results = await Future.wait(chunks.map((chunk) => _posts
           .where('uid', whereIn: chunk)
           .orderBy('createdAt', descending: true)
@@ -94,6 +83,15 @@ class PostService {
       allPosts.sort((a, b) => b.createdAt.compareTo(a.createdAt));
       return allPosts;
     });
+  }
+
+  /// Posts by a specific user, newest first
+  Stream<List<PostModel>> streamUserPosts(String uid) {
+    return _posts
+        .where('uid', isEqualTo: uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs.map(PostModel.fromDoc).toList());
   }
 
   // ── Likes ───────────────────────────────────────────────────────────────────
@@ -111,23 +109,23 @@ class PostService {
   }) async {
     final postRef = _posts.doc(postId);
     final likeRef = postRef.collection('likes').doc(uid);
-
     await _db.runTransaction((tx) async {
       if (currentlyLiked) {
         tx.delete(likeRef);
         tx.update(postRef, {'likesCount': FieldValue.increment(-1)});
       } else {
-        tx.set(likeRef, {'uid': uid, 'likedAt': FieldValue.serverTimestamp()});
+        tx.set(likeRef,
+            {'uid': uid, 'likedAt': FieldValue.serverTimestamp()});
         tx.update(postRef, {'likesCount': FieldValue.increment(1)});
       }
     });
   }
 
-  /// Fetch like status for a list of post IDs
   Future<Map<String, bool>> getLikeStatuses(
       List<String> postIds, String uid) async {
     final results = await Future.wait(
-      postIds.map((id) => _posts.doc(id).collection('likes').doc(uid).get()),
+      postIds.map(
+          (id) => _posts.doc(id).collection('likes').doc(uid).get()),
     );
     return {
       for (var i = 0; i < postIds.length; i++)

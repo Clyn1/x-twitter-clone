@@ -6,6 +6,7 @@ import '../models/post_model.dart';
 import '../providers/providers.dart';
 import '../widgets/post_card.dart';
 import 'create_post_screen.dart';
+import 'profile_screen.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -39,7 +40,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final screens = [
       _FeedPage(tabController: _tabController, currentUid: uid),
       const CreatePostScreen(),
-      _ProfilePage(uid: uid),
+      ProfileScreen(uid: uid),
     ];
 
     return Scaffold(
@@ -62,10 +63,7 @@ class _FeedPage extends ConsumerWidget {
   final TabController tabController;
   final String currentUid;
 
-  const _FeedPage({
-    required this.tabController,
-    required this.currentUid,
-  });
+  const _FeedPage({required this.tabController, required this.currentUid});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -80,20 +78,18 @@ class _FeedPage extends ConsumerWidget {
           floating: true,
           snap: true,
           pinned: false,
-          title: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1D9BF0),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.flutter_dash,
-                    color: Colors.white, size: 18),
+          automaticallyImplyLeading: false,
+          title: Center(
+            child: Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D9BF0),
+                borderRadius: BorderRadius.circular(8),
               ),
-            ],
+              child: const Icon(Icons.flutter_dash,
+                  color: Colors.white, size: 18),
+            ),
           ),
           centerTitle: true,
           bottom: TabBar(
@@ -104,9 +100,7 @@ class _FeedPage extends ConsumerWidget {
             labelColor: Colors.white,
             unselectedLabelColor: Colors.white38,
             labelStyle: const TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: 15,
-            ),
+                fontWeight: FontWeight.w600, fontSize: 15),
             tabs: const [
               Tab(text: 'For You'),
               Tab(text: 'Following'),
@@ -117,17 +111,16 @@ class _FeedPage extends ConsumerWidget {
       body: TabBarView(
         controller: tabController,
         children: [
-          // For You tab
           _FeedList(
             feedAsync: globalFeed,
             currentUid: currentUid,
             emptyMessage: 'No posts yet.\nBe the first to post!',
           ),
-          // Following tab
           _FeedList(
             feedAsync: followingFeed,
             currentUid: currentUid,
-            emptyMessage: 'Follow people to see\ntheir posts here.',
+            emptyMessage:
+                'Follow people to see\ntheir posts here.',
           ),
         ],
       ),
@@ -151,9 +144,7 @@ class _FeedList extends ConsumerWidget {
     return feedAsync.when(
       loading: () => const Center(
         child: CircularProgressIndicator(
-          color: Color(0xFF1D9BF0),
-          strokeWidth: 2,
-        ),
+            color: Color(0xFF1D9BF0), strokeWidth: 2),
       ),
       error: (e, _) => Center(
         child: Text('Error loading feed',
@@ -162,7 +153,6 @@ class _FeedList extends ConsumerWidget {
       data: (posts) {
         final typedPosts = posts.cast<PostModel>();
 
-        // Load like statuses whenever posts change
         if (typedPosts.isNotEmpty) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             ref.read(feedLikesProvider.notifier).loadLikes(typedPosts);
@@ -195,173 +185,6 @@ class _FeedList extends ConsumerWidget {
   }
 }
 
-// ── Profile Page (placeholder) ────────────────────────────────────────────────
-
-class _ProfilePage extends ConsumerWidget {
-  final String uid;
-
-  const _ProfilePage({required this.uid});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(currentUserProvider).value;
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A14),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0A0A14),
-        elevation: 0,
-        title: Text(
-          user?.displayName ?? 'Profile',
-          style: const TextStyle(
-              color: Colors.white, fontWeight: FontWeight.w700, fontSize: 17),
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.logout,
-                color: Colors.white.withOpacity(0.6), size: 20),
-            onPressed: () => ref.read(authServiceProvider).logout(),
-          ),
-        ],
-      ),
-      body: user == null
-          ? const Center(
-              child: CircularProgressIndicator(color: Color(0xFF1D9BF0)))
-          : SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Cover
-                  Container(
-                    height: 120,
-                    color: const Color(0xFF1D9BF0).withOpacity(0.15),
-                  ),
-
-                  // Avatar + follow button row
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                    child: Row(
-                      children: [
-                        Transform.translate(
-                          offset: const Offset(0, -32),
-                          child: Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF1D9BF0).withOpacity(0.2),
-                              border: Border.all(
-                                  color: const Color(0xFF0A0A14), width: 3),
-                              image: user.photoUrl != null
-                                  ? DecorationImage(
-                                      image: NetworkImage(user.photoUrl!),
-                                      fit: BoxFit.cover)
-                                  : null,
-                            ),
-                            child: user.photoUrl == null
-                                ? Center(
-                                    child: Text(
-                                      user.displayName.isNotEmpty
-                                          ? user.displayName[0].toUpperCase()
-                                          : '?',
-                                      style: const TextStyle(
-                                          color: Color(0xFF1D9BF0),
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 24),
-                                    ),
-                                  )
-                                : null,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Name + username
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(user.displayName,
-                            style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w700,
-                                fontSize: 20)),
-                        const SizedBox(height: 2),
-                        Text('@${user.username}',
-                            style: TextStyle(
-                                color: Colors.white.withOpacity(0.45),
-                                fontSize: 14)),
-                        if (user.bio.isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          Text(user.bio,
-                              style: TextStyle(
-                                  color: Colors.white.withOpacity(0.85),
-                                  fontSize: 15,
-                                  height: 1.4)),
-                        ],
-                        const SizedBox(height: 14),
-
-                        // Stats
-                        Row(children: [
-                          _Stat(
-                              count: user.followingCount,
-                              label: 'Following'),
-                          const SizedBox(width: 20),
-                          _Stat(
-                              count: user.followersCount,
-                              label: 'Followers'),
-                        ]),
-                        const SizedBox(height: 16),
-                        Divider(
-                            color: Colors.white.withOpacity(0.07),
-                            height: 1),
-                      ],
-                    ),
-                  ),
-
-                  // Posts tab placeholder
-                  Padding(
-                    padding: const EdgeInsets.all(32),
-                    child: Center(
-                      child: Text(
-                        'Your posts will appear here',
-                        style: TextStyle(
-                            color: Colors.white.withOpacity(0.35),
-                            fontSize: 15),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-    );
-  }
-}
-
-class _Stat extends StatelessWidget {
-  final int count;
-  final String label;
-
-  const _Stat({required this.count, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(children: [
-      Text(
-        count.toString(),
-        style: const TextStyle(
-            color: Colors.white, fontWeight: FontWeight.w700, fontSize: 15),
-      ),
-      const SizedBox(width: 4),
-      Text(label,
-          style: TextStyle(
-              color: Colors.white.withOpacity(0.45), fontSize: 14)),
-    ]);
-  }
-}
-
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 
 class _BottomNav extends StatelessWidget {
@@ -377,9 +200,7 @@ class _BottomNav extends StatelessWidget {
         color: const Color(0xFF0A0A14),
         border: Border(
           top: BorderSide(
-            color: Colors.white.withOpacity(0.07),
-            width: 1,
-          ),
+              color: Colors.white.withOpacity(0.07), width: 1),
         ),
       ),
       child: SafeArea(

@@ -2,7 +2,6 @@
 
 import 'dart:typed_data';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:state_notifier/state_notifier.dart';
 import '../models/profile_setup_state.dart';
 import '../models/user_model.dart';
 import '../services/user_service.dart';
@@ -61,7 +60,7 @@ class ProfileSetupNotifier extends StateNotifier<ProfileSetupState> {
       if (photoBytes != null && photoMimeType != null) {
         await _userService.uploadProfilePhoto(
           uid: uid,
-          bytes: photoBytes,
+          imageBytes: photoBytes,
           mimeType: photoMimeType,
         );
       }
